@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+
+  <title>Firman Gesture V0</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #080b10;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: auto;
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 21px;
+      letter-spacing: 2px;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      color: #9ca6b5;
+      margin-bottom: 15px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 8px 12px;
+      margin-bottom: 12px;
+      border-radius: 20px;
+      background: #151b24;
+      color: #ffd86b;
+      font-size: 13px;
+    }
+
+    .camera-box {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      background: black;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid #27303d;
+    }
+
+    video,
+    canvas {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      object-fit: cover;
+    }
+
+    .mirror {
+      transform: scaleX(-1);
+    }
+
+    .hud {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+
+      z-index: 10;
+    }
+
+    .chip {
+      background: rgba(0,0,0,.70);
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.20);
+      font-size: 13px;
+    }
+
+    .gesture {
+      color: #7cffb2;
+      font-weight: bold;
+    }
+
+    .controls {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    button,
+    select {
+      height: 50px;
+      border: 1px solid #27303d;
+      border-radius: 13px;
+      background: #151b24;
+      color: white;
+      font-size: 16px;
+    }
+
+    .start {
+      background: white;
+      color: black;
+      font-weight: bold;
+    }
+
+    button:disabled {
+      opacity: .5;
+    }
+
+    .info {
+      margin-top: 14px;
+      background: #11161e;
+      border: 1px solid #27303d;
+      border-radius: 15px;
+      padding: 15px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      margin: 9px 0;
+      gap: 10px;
+    }
+
+    .label {
+      color: #9ca6b5;
+    }
+
+    .instructions {
+      margin-top: 14px;
+      color: #9ca6b5;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    @media (min-width: 700px) {
+      .camera-box {
+        aspect-ratio: 16 / 10;
+      }
+
+      .controls {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+
+
+<body>
+
+<div class="container">
+
+  <h1>FIRMAN GESTURE V0</h1>
+
+  <div class="subtitle">
+    Hand Tracking Presentation Controller
+  </div>
+
+  <div id="aiStatus" class="status">
+    AI ENGINE : LOADING...
+  </div>
+
+
+  <div class="camera-box">
+
+    <video
+      id="video"
+      autoplay
+      playsinline
+      muted
+    ></video>
+
+    <canvas id="canvas"></canvas>
+
+
+    <div class="hud">
+
+      <div class="chip">
+        HANDS:
+        <b id="handCount">0</b>
+      </div>
+
+      <div class="chip">
+        GESTURE:
+        <b id="gesture" class="gesture">—</b>
+      </div>
+
+      <div class="chip">
+        FPS:
+        <b id="fps">0</b>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div class="controls">
+
+    <select id="cameraSelect">
+
+      <option value="user">
+        Kamera Depan
+      </option>
+
+      <option value="environment">
+        Kamera Belakang
+      </option>
+
+    </select>
+
+
+    <button
+      id="startButton"
+      class="start"
+      disabled
+    >
+      START CAMERA
+    </button>
+
+
+    <button
+      id="stopButton"
+      disabled
+    >
+      STOP
+    </button>
+
+  </div>
+
+
+  <div class="info">
+
+    <div class="row">
+
+      <span class="label">
+        Camera
+      </span>
+
+      <b id="cameraStatus">
+        OFF
+      </b>
+
+    </div>
+
+
+    <div class="row">
+
+      <span class="label">
+        Tracking
+      </span>
+
+      <b id="trackingStatus">
+        WAITING
+      </b>
+
+    </div>
+
+
+    <div class="row">
+
+      <span class="label">
+        Pinch Value
+      </span>
+
+      <b id="pinchValue">
+        —
+      </b>
+
+    </div>
+
+  </div>
+
+
+  <div class="instructions">
+
+    <b>TEST V0</b><br><br>
+
+    1. Tekan START CAMERA.<br>
+    2. Izinkan akses kamera.<br>
+    3. Angkat satu tangan.<br>
+    4. Titik hijau harus mengikuti tangan kamu.<br>
+    5. Satukan ibu jari dan telunjuk untuk mencoba PINCH 🤏.
+
+  </div>
+
+</div>
+
+
+
+<script type="module">
+
+import {
+  FilesetResolver,
+  HandLandmarker
+} from
+"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/+esm";
+
+
+/* ===============================
+   ELEMENT
+================================ */
+
+const video =
+  document.getElementById("video");
+
+const canvas =
+  document.getElementById("canvas");
+
+const ctx =
+  canvas.getContext("2d");
+
+
+const aiStatus =
+  document.getElementById("aiStatus");
+
+const startButton =
+  document.getElementById("startButton");
+
+const stopButton =
+  document.getElementById("stopButton");
+
+const cameraSelect =
+  document.getElementById("cameraSelect");
+
+
+const cameraStatus =
+  document.getElementById("cameraStatus");
+
+const trackingStatus =
+  document.getElementById("trackingStatus");
+
+const handCount =
+  document.getElementById("handCount");
+
+const gestureText =
+  document.getElementById("gesture");
+
+const pinchValue =
+  document.getElementById("pinchValue");
+
+const fpsText =
+  document.getElementById("fps");
+
+
+/* ===============================
+   VARIABLE
+================================ */
+
+let handLandmarker;
+
+let stream;
+
+let running = false;
+
+let lastVideoTime = -1;
+
+let lastInference = 0;
+
+let frameCounter = 0;
+
+let fpsTimer = performance.now();
+
+
+
+/* ===============================
+   HAND CONNECTIONS
+================================ */
+
+const connections = [
+
+  [0,1],
+  [1,2],
+  [2,3],
+  [3,4],
+
+  [0,5],
+  [5,6],
+  [6,7],
+  [7,8],
+
+  [5,9],
+  [9,10],
+  [10,11],
+  [11,12],
+
+  [9,13],
+  [13,14],
+  [14,15],
+  [15,16],
+
+  [13,17],
+  [17,18],
+  [18,19],
+  [19,20],
+
+  [0,17]
+
+];
+
+
+
+/* ===============================
+   LOAD MEDIAPIPE
+================================ */
+
+async function loadAI() {
+
+  try {
+
+    aiStatus.innerText =
+      "AI ENGINE : LOADING...";
+
+
+    const vision =
+      await FilesetResolver.forVisionTasks(
+
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
+
+      );
+
+
+    handLandmarker =
+      await HandLandmarker.createFromOptions(
+
+        vision,
+
+        {
+
+          baseOptions: {
+
+            modelAssetPath:
+
+            "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
+
+          },
+
+          runningMode:
+            "VIDEO",
+
+          numHands:
+            2,
+
+          minHandDetectionConfidence:
+            0.55,
+
+          minHandPresenceConfidence:
+            0.55,
+
+          minTrackingConfidence:
+            0.55
+
+        }
+
+      );
+
+
+    aiStatus.innerText =
+      "AI ENGINE : READY";
+
+    aiStatus.style.color =
+      "#7cffb2";
+
+    startButton.disabled =
+      false;
+
+  }
+
+  catch(error) {
+
+    console.error(error);
+
+    aiStatus.innerText =
+      "AI ENGINE : ERROR";
+
+    aiStatus.style.color =
+      "#ff7272";
+
+  }
+
+}
+
+
+
+/* ===============================
+   CAMERA
+================================ */
+
+async function startCamera() {
+
+  stopCamera();
+
+
+  try {
+
+    cameraStatus.innerText =
+      "CONNECTING";
+
+
+    stream =
+      await navigator.mediaDevices.getUserMedia({
+
+        audio: false,
+
+        video: {
+
+          facingMode: {
+
+            ideal:
+              cameraSelect.value
+
+          },
+
+          width: {
+
+            ideal: 1280
+
+          },
+
+          height: {
+
+            ideal: 720
+
+          }
+
+        }
+
+      });
+
+
+    video.srcObject =
+      stream;
+
+
+    await video.play();
+
+
+    canvas.width =
+      video.videoWidth;
+
+    canvas.height =
+      video.videoHeight;
+
+
+    const mirror =
+      cameraSelect.value === "user";
+
+
+    video.classList.toggle(
+      "mirror",
+      mirror
+    );
+
+
+    canvas.classList.toggle(
+      "mirror",
+      mirror
+    );
+
+
+    running =
+      true;
+
+
+    cameraStatus.innerText =
+      "ACTIVE";
+
+    trackingStatus.innerText =
+      "SEARCHING";
+
+
+    startButton.disabled =
+      true;
+
+    stopButton.disabled =
+      false;
+
+    cameraSelect.disabled =
+      true;
+
+
+    requestAnimationFrame(
+      detectHands
+    );
+
+  }
+
+  catch(error) {
+
+    console.error(error);
+
+    cameraStatus.innerText =
+      "CAMERA ERROR";
+
+    alert(
+      "Kamera tidak bisa dibuka. Pastikan izin kamera sudah diberikan."
+    );
+
+  }
+
+}
+
+
+
+/* ===============================
+   STOP CAMERA
+================================ */
+
+function stopCamera() {
+
+  running =
+    false;
+
+
+  if(stream) {
+
+    stream
+      .getTracks()
+      .forEach(
+
+        track =>
+          track.stop()
+
+      );
+
+    stream =
+      null;
+
+  }
+
+
+  video.srcObject =
+    null;
+
+
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+
+  cameraStatus.innerText =
+    "OFF";
+
+  trackingStatus.innerText =
+    "WAITING";
+
+  handCount.innerText =
+    "0";
+
+  gestureText.innerText =
+    "—";
+
+  pinchValue.innerText =
+    "—";
+
+
+  startButton.disabled =
+    !handLandmarker;
+
+  stopButton.disabled =
+    true;
+
+  cameraSelect.disabled =
+    false;
+
+}
+
+
+
+/* ===============================
+   DISTANCE
+================================ */
+
+function distance(a,b) {
+
+  return Math.hypot(
+
+    a.x - b.x,
+    a.y - b.y
+
+  );
+
+}
+
+
+
+/* ===============================
+   DRAW HAND
+================================ */
+
+function drawHand(result) {
+
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+
+  const hands =
+    result.landmarks || [];
+
+
+  handCount.innerText =
+    hands.length;
+
+
+  if(hands.length > 0) {
+
+    trackingStatus.innerText =
+      "HAND DETECTED";
+
+  }
+
+  else {
+
+    trackingStatus.innerText =
+      "SEARCHING";
+
+  }
+
+
+  let currentGesture =
+    "—";
+
+
+  let currentPinch =
+    "—";
+
+
+  for(const landmarks of hands) {
+
+
+    /* DRAW LINES */
+
+    ctx.strokeStyle =
+      "#53ffac";
+
+    ctx.lineWidth =
+      4;
+
+
+    for(const pair of connections) {
+
+      const a =
+        landmarks[pair[0]];
+
+      const b =
+        landmarks[pair[1]];
+
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+
+        a.x * canvas.width,
+        a.y * canvas.height
+
+      );
+
+      ctx.lineTo(
+
+        b.x * canvas.width,
+        b.y * canvas.height
+
+      );
+
+      ctx.stroke();
+
+    }
+
+
+
+    /* DRAW LANDMARK */
+
+    landmarks.forEach(
+
+      (point,index) => {
+
+        ctx.beginPath();
+
+
+        if(
+          index === 4 ||
+          index === 8
+        ) {
+
+          ctx.fillStyle =
+            "#ffd65a";
+
+        }
+
+        else {
+
+          ctx.fillStyle =
+            "#53ffac";
+
+        }
+
+
+        ctx.arc(
+
+          point.x * canvas.width,
+
+          point.y * canvas.height,
+
+          6,
+
+          0,
+
+          Math.PI * 2
+
+        );
+
+
+        ctx.fill();
+
+      }
+
+    );
+
+
+
+    /* ===============================
+       PINCH DETECTOR
+    ================================ */
+
+
+    const thumbTip =
+      landmarks[4];
+
+
+    const indexTip =
+      landmarks[8];
+
+
+    const indexBase =
+      landmarks[5];
+
+
+    const pinkyBase =
+      landmarks[17];
+
+
+    const palmWidth =
+      Math.max(
+
+        distance(
+          indexBase,
+          pinkyBase
+        ),
+
+        0.001
+
+      );
+
+
+    const pinchDistance =
+
+      distance(
+        thumbTip,
+        indexTip
+      )
+
+      /
+
+      palmWidth;
+
+
+    currentPinch =
+      pinchDistance.toFixed(2);
+
+
+    if(
+      pinchDistance < 0.35
+    ) {
+
+      currentGesture =
+        "PINCH 🤏";
+
+    }
+
+  }
+
+
+  gestureText.innerText =
+    currentGesture;
+
+
+  pinchValue.innerText =
+    currentPinch;
+
+}
+
+
+
+/* ===============================
+   HAND DETECTION LOOP
+================================ */
+
+function detectHands(timestamp) {
+
+  if(!running) {
+
+    return;
+
+  }
+
+
+  /*
+   Limit sekitar 20 FPS
+   supaya iPhone tidak terlalu panas
+  */
+
+  if(
+
+    handLandmarker &&
+
+    video.readyState >= 2 &&
+
+    timestamp - lastInference >= 50
+
+  ) {
+
+    lastInference =
+      timestamp;
+
+
+    if(
+
+      video.currentTime !==
+      lastVideoTime
+
+    ) {
+
+      lastVideoTime =
+        video.currentTime;
+
+
+      const result =
+
+        handLandmarker.detectForVideo(
+
+          video,
+
+          timestamp
+
+        );
+
+
+      drawHand(
+        result
+      );
+
+
+      frameCounter++;
+
+    }
+
+  }
+
+
+
+  /* FPS */
+
+  if(
+
+    timestamp - fpsTimer >=
+    1000
+
+  ) {
+
+    fpsText.innerText =
+      frameCounter;
+
+
+    frameCounter =
+      0;
+
+
+    fpsTimer =
+      timestamp;
+
+  }
+
+
+  requestAnimationFrame(
+    detectHands
+  );
+
+}
+
+
+
+/* ===============================
+   BUTTONS
+================================ */
+
+startButton.addEventListener(
+
+  "click",
+
+  startCamera
+
+);
+
+
+stopButton.addEventListener(
+
+  "click",
+
+  stopCamera
+
+);
+
+
+window.addEventListener(
+
+  "pagehide",
+
+  stopCamera
+
+);
+
+
+
+/* ===============================
+   START AI
+================================ */
+
+loadAI();
+
+</script>
+
+
+</body>
+</html>
